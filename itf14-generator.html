@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Packaging Barcode Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.6/JsBarcode.all.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&display=swap');
+
+  :root {
+    --bg: #0f0f0f;
+    --surface: #1a1a1a;
+    --border: #2e2e2e;
+    --accent: #d4ff00;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --white: #ffffff;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    min-height: 100vh;
+    padding: 40px 20px;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 48px;
+  }
+
+  header h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(2rem, 5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--white);
+    line-height: 1;
+  }
+
+  header h1 span { color: var(--accent); }
+
+  header p {
+    color: var(--muted);
+    font-size: 0.82rem;
+    margin-top: 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .badge-row {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-top: 16px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+
+  .badge.active { border-color: var(--accent); color: var(--accent); }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    gap: 2px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px;
+    margin-bottom: 32px;
+  }
+
+  .tab {
+    flex: 1;
+    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 0.06em;
+    cursor: pointer;
+    border-radius: 7px;
+    transition: all 0.2s;
+    text-align: center;
+  }
+
+  .tab:hover { color: var(--text); }
+
+  .tab.active {
+    background: var(--accent);
+    color: #000;
+    font-weight: 500;
+  }
+
+  .tab-label { display: block; font-size: 0.65rem; opacity: 0.7; margin-top: 2px; }
+
+  /* Panel */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 32px;
+    margin-bottom: 20px;
+  }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--white);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .tag {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.65rem;
+    background: #1f1f1f;
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 4px;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+  }
+
+  .card-desc {
+    font-size: 0.78rem;
+    color: var(--muted);
+    margin-bottom: 24px;
+    line-height: 1.6;
+  }
+
+  label {
+    display: block;
+    font-size: 0.72rem;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+  }
+
+  input[type="text"], input[type="number"], select {
+    width: 100%;
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 7px;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    font-size: 0.9rem;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    margin-bottom: 16px;
+  }
+
+  input:focus, select:focus { border-color: var(--accent); }
+
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 520px) { .row { grid-template-columns: 1fr; } }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 7px;
+    padding: 13px 24px;
+    font-family: 'DM Mono', monospace;
+    font-size: 0.82rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+  }
+
+  .btn:hover { opacity: 0.88; }
+  .btn:active { transform: scale(0.98); }
+
+  .btn-outline {
+    background: transparent;
+    color: var(--text);
+    border: 1px solid var(--border);
+  }
+
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); opacity: 1; }
+
+  .btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+
+  /* Result */
+  .result-box {
+    background: #111;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 32px;
+    text-align: center;
+    margin-top: 24px;
+    position: relative;
+    display: none;
+  }
+
+  .result-box.visible { display: block; }
+
+  .result-box svg { max-width: 100%; height: auto; }
+
+  .result-meta {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+  }
+
+  .meta-item { text-align: center; }
+  .meta-item .val {
+    font-family: 'Syne', sans-serif;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent);
+  }
+  .meta-item .key { font-size: 0.68rem; color: var(--muted); margin-top: 2px; letter-spacing: 0.06em; }
+
+  /* Error */
+  .error-msg {
+    background: #2a0f0f;
+    border: 1px solid #5a1a1a;
+    color: #ff6b6b;
+    border-radius: 7px;
+    padding: 12px 16px;
+    font-size: 0.8rem;
+    margin-top: 12px;
+    display: none;
+  }
+
+  /* Info box */
+  .info-box {
+    background: #111a00;
+    border: 1px solid #3a4a00;
+    border-radius: 8px;
+    padding: 14px 16px;
+    font-size: 0.78rem;
+    color: #aac700;
+    line-height: 1.6;
+    margin-bottom: 20px;
+  }
+
+  .info-box strong { color: var(--accent); }
+
+  /* Packaging summary */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 32px;
+  }
+
+  @media (max-width: 600px) { .summary-grid { grid-template-columns: 1fr; } }
+
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px;
+    text-align: center;
+  }
+
+  .summary-card .num {
+    font-family: 'Syne', sans-serif;
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--accent);
+    line-height: 1;
+  }
+
+  .summary-card .lbl {
+    font-size: 0.7rem;
+    color: var(--muted);
+    margin-top: 6px;
+    letter-spacing: 0.06em;
+    line-height: 1.4;
+  }
+
+  .summary-card.done { border-color: #2e4a00; background: #111a00; }
+  .summary-card.done .num { color: var(--accent); }
+
+  /* Download area */
+  .dl-hint { font-size: 0.72rem; color: var(--muted); margin-top: 12px; }
+
+  hr { border: none; border-top: 1px solid var(--border); margin: 28px 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Packaging <span>Barcode</span><br/>Generator</h1>
+  <p>POWERED BY JSBARCODE · GS1 COMPLIANT</p>
+  <div class="badge-row">
+    <span class="badge active">EAN-13 ✓ Bought</span>
+    <span class="badge active">ITF-14 ✓ Bought</span>
+    <span class="badge active">ITF-14 (2nd) ← Generate Here</span>
+  </div>
+</header>
+
+<div class="container">
+
+  <div class="summary-grid">
+    <div class="summary-card done">
+      <div class="num">①</div>
+      <div class="lbl">EAN-13<br/>Retail / Consumer Unit</div>
+    </div>
+    <div class="summary-card done">
+      <div class="num">②</div>
+      <div class="lbl">ITF-14 (1st)<br/>Inner Pack / Case</div>
+    </div>
+    <div class="summary-card">
+      <div class="num" style="color:#ff6b35">③</div>
+      <div class="lbl">ITF-14 (2nd)<br/>Outer Case / Pallet ← Generate</div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="switchTab('itf2')">
+      🏭 ITF-14 (2nd)
+      <span class="tab-label">OUTER CASE / PALLET</span>
+    </button>
+    <button class="tab" onclick="switchTab('itf1')">
+      📦 ITF-14 (1st)
+      <span class="tab-label">INNER PACK</span>
+    </button>
+    <button class="tab" onclick="switchTab('ean13')">
+      🛒 EAN-13
+      <span class="tab-label">RETAIL UNIT</span>
+    </button>
+  </div>
+
+  <!-- ITF-14 (2nd) Panel -->
+  <div id="panel-itf2" class="panel active">
+    <div class="card">
+      <div class="card-title">
+        Generate Your 2nd ITF-14 Code
+        <span class="tag">OUTER CASE / PALLET LEVEL</span>
+      </div>
+      <div class="card-desc">
+        ITF-14 is a GS1 standard 14-digit barcode used for outer shipping cases and pallets.
+        Your 2nd ITF-14 typically represents the next level of packaging (e.g., a master carton or pallet unit).
+        Enter your base EAN-13 and the indicator digit to auto-build the 14-digit code.
+      </div>
+
+      <div class="info-box">
+        <strong>How ITF-14 is built:</strong><br/>
+        [ Indicator Digit (1) ] + [ Company Prefix + Item Ref from EAN-13 (12 digits) ] + [ Check Digit (auto-calculated) ]<br/>
+        Indicator digit: <strong>1</strong> = inner pack &nbsp;|&nbsp; <strong>2–8</strong> = outer/higher levels &nbsp;|&nbsp; <strong>9</strong> = variable measure
+      </div>
+
+      <label>Your EAN-13 (13 digits)</label>
+      <input type="text" id="ean13-input2" maxlength="13" placeholder="e.g. 5901234123457" oninput="autoCalcITF2()" />
+
+      <label>Indicator Digit (for 2nd level — use 2 or higher)</label>
+      <select id="indicator2" onchange="autoCalcITF2()">
+        <option value="2">2 — 2nd packaging level (outer case)</option>
+        <option value="3">3 — 3rd packaging level</option>
+        <option value="4">4 — 4th packaging level</option>
+        <option value="5">5</option>
+        <option value="6">6</option>
+        <option value="7">7</option>
+        <option value="8">8</option>
+        <option value="9">9 — Variable measure</option>
+      </select>
+
+      <label>Calculated 14-Digit ITF-14 Code</label>
+      <input type="text" id="itf14-auto" readonly placeholder="Auto-generated from EAN-13 + indicator" />
+
+      <div id="err2" class="error-msg"></div>
+
+      <hr/>
+
+      <div class="row">
+        <div>
+          <label>Bar Height (px)</label>
+          <input type="number" id="h2" value="80" min="30" max="200"/>
+        </div>
+        <div>
+          <label>Scale / Width</label>
+          <input type="number" id="w2" value="2.5" min="1" max="5" step="0.5"/>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="generateBarcode('itf2')">⚡ Generate Barcode</button>
+        <button class="btn btn-outline" onclick="downloadSVG('itf2')">↓ Download SVG</button>
+        <button class="btn btn-outline" onclick="downloadPNG('itf2')">↓ Download PNG</button>
+      </div>
+    </div>
+
+    <div id="result-itf2" class="result-box">
+      <svg id="svg-itf2"></svg>
+      <div class="result-meta">
+        <div class="meta-item"><div class="val" id="meta-itf2-code">—</div><div class="key">14-DIGIT CODE</div></div>
+        <div class="meta-item"><div class="val" id="meta-itf2-type">ITF-14</div><div class="key">BARCODE TYPE</div></div>
+        <div class="meta-item"><div class="val" id="meta-itf2-level">—</div><div class="key">PACKAGE LEVEL</div></div>
+      </div>
+      <div class="dl-hint">Right-click the barcode to save image, or use the Download buttons above.</div>
+    </div>
+  </div>
+
+  <!-- ITF-14 (1st) Panel -->
+  <div id="panel-itf1" class="panel">
+    <div class="card">
+      <div class="card-title">
+        Reference: 1st ITF-14 Code
+        <span class="tag">INNER PACK</span>
+      </div>
+      <div class="card-desc">
+        Generate or preview your first ITF-14 (already purchased). Indicator digit is typically <strong>1</strong> for the first inner pack level.
+      </div>
+
+      <label>Your EAN-13 (13 digits)</label>
+      <input type="text" id="ean13-input1" maxlength="13" placeholder="e.g. 5901234123457" oninput="autoCalcITF1()"/>
+
+      <label>Indicator Digit</label>
+      <select id="indicator1" onchange="autoCalcITF1()">
+        <option value="1">1 — 1st packaging level (inner pack)</option>
+        <option value="2">2 — 2nd packaging level</option>
+      </select>
+
+      <label>Calculated 14-Digit ITF-14 Code</label>
+      <input type="text" id="itf14-auto1" readonly placeholder="Auto-generated" />
+
+      <div id="err1" class="error-msg"></div>
+
+      <hr/>
+
+      <div class="row">
+        <div>
+          <label>Bar Height (px)</label>
+          <input type="number" id="h1" value="80" min="30" max="200"/>
+        </div>
+        <div>
+          <label>Scale / Width</label>
+          <input type="number" id="w1" value="2.5" min="1" max="5" step="0.5"/>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="generateBarcode('itf1')">⚡ Generate Barcode</button>
+        <button class="btn btn-outline" onclick="downloadSVG('itf1')">↓ Download SVG</button>
+        <button class="btn btn-outline" onclick="downloadPNG('itf1')">↓ Download PNG</button>
+      </div>
+    </div>
+
+    <div id="result-itf1" class="result-box">
+      <svg id="svg-itf1"></svg>
+      <div class="result-meta">
+        <div class="meta-item"><div class="val" id="meta-itf1-code">—</div><div class="key">14-DIGIT CODE</div></div>
+        <div class="meta-item"><div class="val" id="meta-itf1-type">ITF-14</div><div class="key">BARCODE TYPE</div></div>
+        <div class="meta-item"><div class="val" id="meta-itf1-level">—</div><div class="key">PACKAGE LEVEL</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- EAN-13 Panel -->
+  <div id="panel-ean13" class="panel">
+    <div class="card">
+      <div class="card-title">
+        Reference: EAN-13 Code
+        <span class="tag">RETAIL / CONSUMER</span>
+      </div>
+      <div class="card-desc">
+        Preview your EAN-13 barcode (already purchased). This is the retail-level barcode scanned at checkout.
+      </div>
+
+      <label>EAN-13 Code (13 digits)</label>
+      <input type="text" id="ean13-main" maxlength="13" placeholder="e.g. 5901234123457"/>
+
+      <div id="err-ean" class="error-msg"></div>
+
+      <hr/>
+
+      <div class="row">
+        <div>
+          <label>Bar Height (px)</label>
+          <input type="number" id="h-ean" value="80" min="30" max="200"/>
+        </div>
+        <div>
+          <label>Scale / Width</label>
+          <input type="number" id="w-ean" value="2" min="1" max="5" step="0.5"/>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" onclick="generateBarcode('ean13')">⚡ Generate Barcode</button>
+        <button class="btn btn-outline" onclick="downloadSVG('ean13')">↓ Download SVG</button>
+        <button class="btn btn-outline" onclick="downloadPNG('ean13')">↓ Download PNG</button>
+      </div>
+    </div>
+
+    <div id="result-ean13" class="result-box">
+      <svg id="svg-ean13"></svg>
+      <div class="result-meta">
+        <div class="meta-item"><div class="val" id="meta-ean13-code">—</div><div class="key">EAN-13 CODE</div></div>
+        <div class="meta-item"><div class="val">EAN-13</div><div class="key">BARCODE TYPE</div></div>
+        <div class="meta-item"><div class="val">RETAIL</div><div class="key">PACKAGE LEVEL</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  // ── Tab switching ──────────────────────────────────────
+  function switchTab(id) {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    event.target.closest('.tab').classList.add('active');
+    document.getElementById('panel-' + id).classList.add('active');
+  }
+
+  // ── GS1 check digit ───────────────────────────────────
+  function calcCheckDigit(digits12) {
+    let sum = 0;
+    for (let i = 0; i < 12; i++) {
+      sum += parseInt(digits12[i]) * (i % 2 === 0 ? 3 : 1);
+    }
+    return (10 - (sum % 10)) % 10;
+  }
+
+  function buildITF14(ean13, indicator) {
+    if (!/^\d{13}$/.test(ean13)) return null;
+    const base12 = ean13.slice(0, 12); // strip original check digit
+    const itf13 = indicator + base12;  // 13 digits so far
+    const check = calcCheckDigit(itf13);
+    return itf13 + check;
+  }
+
+  function autoCalcITF2() {
+    const ean = document.getElementById('ean13-input2').value.trim();
+    const ind = document.getElementById('indicator2').value;
+    const result = buildITF14(ean, ind);
+    document.getElementById('itf14-auto').value = result || '';
+  }
+
+  function autoCalcITF1() {
+    const ean = document.getElementById('ean13-input1').value.trim();
+    const ind = document.getElementById('indicator1').value;
+    const result = buildITF14(ean, ind);
+    document.getElementById('itf14-auto1').value = result || '';
+  }
+
+  // ── Show error ─────────────────────────────────────────
+  function showErr(id, msg) {
+    const el = document.getElementById(id);
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideErr(id) {
+    document.getElementById(id).style.display = 'none';
+  }
+
+  // ── Generate ───────────────────────────────────────────
+  function generateBarcode(type) {
+    let code, svgId, resultId, errId, h, w, format, metaCode, metaLevel;
+
+    if (type === 'itf2') {
+      code = document.getElementById('itf14-auto').value.trim();
+      svgId = 'svg-itf2'; resultId = 'result-itf2'; errId = 'err2';
+      h = +document.getElementById('h2').value;
+      w = +document.getElementById('w2').value;
+      format = 'ITF14';
+      const ind = document.getElementById('indicator2').value;
+      metaCode = code; metaLevel = `LEVEL ${ind} (OUTER)`;
+    } else if (type === 'itf1') {
+      code = document.getElementById('itf14-auto1').value.trim();
+      svgId = 'svg-itf1'; resultId = 'result-itf1'; errId = 'err1';
+      h = +document.getElementById('h1').value;
+      w = +document.getElementById('w1').value;
+      format = 'ITF14';
+      const ind = document.getElementById('indicator1').value;
+      metaCode = code; metaLevel = `LEVEL ${ind} (INNER)`;
+    } else {
+      code = document.getElementById('ean13-main').value.trim();
+      svgId = 'svg-ean13'; resultId = 'result-ean13'; errId = 'err-ean';
+      h = +document.getElementById('h-ean').value;
+      w = +document.getElementById('w-ean').value;
+      format = 'EAN13';
+      metaCode = code; metaLevel = 'RETAIL';
+    }
+
+    hideErr(errId);
+
+    // Validate
+    if (format === 'ITF14' && !/^\d{14}$/.test(code)) {
+      showErr(errId, '⚠ Enter a valid 13-digit EAN-13 above to auto-generate the 14-digit ITF-14 code.');
+      return;
+    }
+    if (format === 'EAN13' && !/^\d{13}$/.test(code)) {
+      showErr(errId, '⚠ EAN-13 must be exactly 13 digits.');
+      return;
+    }
+
+    try {
+      JsBarcode('#' + svgId, code, {
+        format: format,
+        width: w,
+        height: h,
+        displayValue: true,
+        font: 'DM Mono, monospace',
+        fontSize: 14,
+        margin: 16,
+        background: '#ffffff',
+        lineColor: '#000000',
+      });
+
+      document.getElementById(resultId).classList.add('visible');
+
+      // Update meta
+      if (type === 'itf2') {
+        document.getElementById('meta-itf2-code').textContent = code;
+        document.getElementById('meta-itf2-level').textContent = metaLevel;
+      } else if (type === 'itf1') {
+        document.getElementById('meta-itf1-code').textContent = code;
+        document.getElementById('meta-itf1-level').textContent = metaLevel;
+      } else {
+        document.getElementById('meta-ean13-code').textContent = code;
+      }
+
+      document.getElementById(resultId).scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
+    } catch(e) {
+      showErr(errId, '⚠ Error generating barcode: ' + e.message);
+    }
+  }
+
+  // ── Download SVG ───────────────────────────────────────
+  function downloadSVG(type) {
+    const svgId = type === 'itf2' ? 'svg-itf2' : type === 'itf1' ? 'svg-itf1' : 'svg-ean13';
+    const svg = document.getElementById(svgId);
+    if (!svg.children.length) { alert('Generate a barcode first!'); return; }
+    const data = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([data], { type: 'image/svg+xml' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `barcode-${type}.svg`;
+    a.click();
+  }
+
+  // ── Download PNG ───────────────────────────────────────
+  function downloadPNG(type) {
+    const svgId = type === 'itf2' ? 'svg-itf2' : type === 'itf1' ? 'svg-itf1' : 'svg-ean13';
+    const svg = document.getElementById(svgId);
+    if (!svg.children.length) { alert('Generate a barcode first!'); return; }
+
+    const svgData = new XMLSerializer().serializeToString(svg);
+    const canvas = document.createElement('canvas');
+    const svgSize = svg.getBoundingClientRect();
+    canvas.width = svg.width?.baseVal?.value || 400;
+    canvas.height = svg.height?.baseVal?.value || 200;
+
+    const img = new Image();
+    const blob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    img.onload = function() {
+      canvas.width = img.width || 400;
+      canvas.height = img.height || 200;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = 'white';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      URL.revokeObjectURL(url);
+      const a = document.createElement('a');
+      a.download = `barcode-${type}.png`;
+      a.href = canvas.toDataURL('image/png');
+      a.click();
+    };
+    img.src = url;
+  }
+</script>
+</body>
+</html>
